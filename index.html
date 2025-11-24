@@ -3,136 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DBMS Lab Report - Complete Implementation</title>
+    <title>DBMS Lab Report - SQL Developer View</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        /* General Styles for IDE Look */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* Dark background */
-            color: #e5e7eb; /* Light text color */
+            background-color: #f5f5f5; /* Light background for body */
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
         }
-        .code-block {
-            background-color: #1f2937; /* Darker background for code */
-            color: #f3f4f6; /* Bright text color */
-            padding: 1rem;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            font-family: monospace;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+        
+        /* Top Header Bar */
+        .app-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #ced4da;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
         }
-        .section-card {
-            background-color: #1f2937; /* Dark card background */
-            border-radius: 1rem;
+
+        /* Main Workspace Structure */
+        #main-workspace {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            border-top: 1px solid #dee2e6; /* Divider under top tabs */
+        }
+
+        /* Left Panel: Navigator/Object Browser */
+        #navigator {
+            width: 280px;
+            background-color: #ffffff;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto; /* Scrollbar for the Navigator */
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        /* Right Panel: SQL Worksheet Area */
+        #content-scroll-area {
+            flex-grow: 1;
+            overflow-y: auto; /* The scrollbar for all data - WORKSPACE */
             padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+            background-color: #f5f5f5; /* Light grey worksheet background */
         }
-        .explanation {
-            background-color: #1f2937; /* Match card background */
-            border-left: 4px solid #60a5fa; /* Light blue border */
+        
+        /* Navigator List Item Style (Mimicking Object Browser) */
+        .nav-item {
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        /* Mimic Selected Item Look (Experiment 1 is default selected) */
+        .nav-item.active {
+            background-color: #e1f3fd; /* Light blue background for selected item */
+            border-left: 3px solid #007bff; /* Blue indicator bar */
+            font-weight: 600;
+            color: #007bff;
+            padding-left: calc(1.5rem - 3px); /* Adjust padding due to border */
+        }
+
+        /* Code Editor Style */
+        .code-block {
+            background-color: #ffffff;
+            color: #343a40;
             padding: 1rem;
-            border-radius: 0.5rem;
-            margin-top: 0.75rem;
-            color: #d1d5db; /* Slightly lighter text for explanation block */
+            border: 1px solid #dee2e6;
+            overflow-x: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.875rem;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.05); /* Soft shadow */
+            line-height: 1.4;
+            white-space: pre-wrap; /* Ensure wrapping within the block */
         }
-        h2 {
-            border-bottom: 2px solid #374151; /* Dark separator */
-            padding-bottom: 0.5rem;
-            margin-bottom: 1rem;
-            color: #f3f4f6; /* White headings */
+
+        /* Query Result/Explanation Panel Style */
+        .explanation {
+            background-color: #f0f0f0; /* Result/Output background */
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-top: 0.75rem;
+            color: #212529;
+            font-size: 0.875rem;
+        }
+        
+        /* Section Header in Worksheet */
+        .worksheet-section-header {
+            background-color: #e9ecef; /* Subtle header background */
+            border-bottom: 1px solid #ced4da;
+            padding: 0.5rem 1rem;
+            margin: -1rem -1rem 1rem -1rem; /* Full width padding */
+            font-weight: 600;
+            color: #343a40;
+        }
+
+        /* Top Bar Tabs */
+        .tab {
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .tab.active {
+            border-bottom: 2px solid #007bff;
+            color: #007bff;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="max-w-4xl mx-auto p-4 md:p-8">
-        <!-- Header -->
-        <header class="text-center mb-8 bg-[#1f2937] p-6 rounded-xl shadow-lg">
-            <h1 class="text-3xl md:text-4xl font-extrabold text-blue-400">DBMS Lab Report</h1>
-            <p class="text-gray-400 mt-2">Complete Implementation: SQL, PL/SQL, OODBMS, Data Warehousing & Triggers</p>
+    <!-- Top Menu/Header Bar (Fixed) -->
+    <div class="app-header">
+        <header class="py-2 px-4 flex justify-between items-center">
+            <h1 class="text-lg font-bold text-gray-700 flex items-center">
+                DBMS Lab Report
+            </h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-500 text-sm">Schema: LAB_USER</span>
+                <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded-sm shadow-md hover:bg-blue-700 transition">Connect</button>
+            </div>
         </header>
+        <!-- Tabs -->
+        <div class="flex px-4 border-t border-gray-200">
+             <div class="tab active">SQL Worksheet 1</div>
+             <div class="tab">Report Viewer</div>
+        </div>
+    </div>
 
-        <!-- Experiment 1 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 1: Library Database Management System</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement a Library Database and execute required queries using Joins and Aggregate Functions.</p>
-            
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">1.1 Table Structure (DDL)</h3>
-            <pre class="code-block">
--- 1. Student Table
-CREATE TABLE Student (
-    IDCardnumber VARCHAR2(20) PRIMARY KEY,
-    RollNumber VARCHAR2(20) UNIQUE,
-    Stud_Name VARCHAR2(50),
-    Class VARCHAR2(10),
-    Branch VARCHAR2(10)
-);
+    <!-- Main Content Area (Navigator + Worksheet) -->
+    <div id="main-workspace">
+        
+        <!-- Left Panel: Navigator (Objects) -->
+        <div id="navigator">
+            <div class="p-4">
+                <select class="block w-full p-1 border border-gray-300 rounded-sm bg-gray-50 text-sm mb-3">
+                    <option>My Schema (LAB_USER)</option>
+                </select>
+                <div class="flex space-x-1 mb-3">
+                    <input type="text" placeholder="Search objects..." class="w-full p-1 border border-gray-300 rounded-sm text-sm">
+                    <button class="bg-gray-200 text-gray-700 p-1 rounded-sm border border-gray-300 hover:bg-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </button>
+                </div>
+            </div>
 
--- 2. Book Table
-CREATE TABLE Book (
-    BookID VARCHAR2(20) PRIMARY KEY,
-    Book_Name VARCHAR2(100),
-    Author VARCHAR2(50),
-    Price NUMBER(10,2)
-);
+            <!-- Experiment List Mimicking Tables/Views -->
+            <ul class="space-y-0.5">
+                <li class="px-4 text-xs font-semibold text-gray-600 border-b pb-1 mb-1">Experiments List</li>
+                <li class="nav-item active">
+                    <a href="#exp1">1. Library Database (SQL/Joins)</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp2">2. Basic PL/SQL (Loops)</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp3">3. Area Calculation (CASE)</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp4">4. Object Oriented DB (Type)</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp5">5. Schema-Level Function</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp6">6. PL/SQL Procedure (IN OUT)</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp7">7. Sequences (DML)</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp8">8. Star Schema Implementation</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp9">9. ROLLUP and CUBE</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#exp10">10. Trigger (Grade Assignment)</a>
+                </li>
+            </ul>
+        </div>
 
--- 3. Issue Table (Links Student and Book)
+        <!-- Right Panel: SQL Worksheet/Content Area (Scrollable) -->
+        <div id="content-scroll-area">
+
+            <!-- Title and Description -->
+            <h1 class="text-2xl font-bold mb-4 text-gray-800">SQL Worksheet 1</h1>
+            <p class="mb-6 text-gray-600 border-b pb-4">Full Lab Implementation Code and Results Panel (Scrollable)</p>
+
+            <!-- Experiment 1 -->
+            <div id="exp1" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 1: Library Database Management System (DDL/DML/SQL)
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-3 font-semibold text-gray-600">Aim: Implement Library DB and execute queries using Joins and Aggregate Functions.</p>
+
+                    <h3 class="text-base font-semibold mt-4 mb-2 text-gray-700">1.1 Table Structure (DDL) & Sample Data (DML)</h3>
+                    <pre class="code-block">
+-- DDL: Defining the tables
+CREATE TABLE Student (IDCardnumber VARCHAR2(20) PRIMARY KEY, RollNumber VARCHAR2(20) UNIQUE, Stud_Name VARCHAR2(50), Class VARCHAR2(10), Branch VARCHAR2(10));
+CREATE TABLE Book (BookID VARCHAR2(20) PRIMARY KEY, Book_Name VARCHAR2(100), Author VARCHAR2(50), Price NUMBER(10,2));
 CREATE TABLE Issue (
-    IssueID NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    IDCardnumber VARCHAR2(20),
-    BookID VARCHAR2(20),
-    IssueDate DATE,
-    SubmissionDate DATE,
-    FOREIGN KEY (IDCardnumber) REFERENCES Student(IDCardnumber),
-    FOREIGN KEY (BookID) REFERENCES Book(BookID)
+    IssueID NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, IDCardnumber VARCHAR2(20), BookID VARCHAR2(20), 
+    IssueDate DATE, SubmissionDate DATE,
+    FOREIGN KEY (IDCardnumber) REFERENCES Student(IDCardnumber), FOREIGN KEY (BookID) REFERENCES Book(BookID)
 );
-            </pre>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">1.2 Sample Data (DML)</h3>
-            <pre class="code-block">
+-- DML: Inserting sample data
 INSERT INTO Student VALUES('ID01','R001','Amit Sharma','TY','CSE');
 INSERT INTO Student VALUES('ID02','R002','Priya Patel','SY','CSE');
 INSERT INTO Student VALUES('ID03','R003','Raj Verma','TY','MECH');
 INSERT INTO Student VALUES('ID04','R004','Sara Khan','FY','CIVIL');
-
 INSERT INTO Book VALUES('B01','Database Systems','Navathe',550);
 INSERT INTO Book VALUES('B02','Operating System','Galvin',750); 
 INSERT INTO Book VALUES('B03','Computer Networks','Tanenbaum',650); 
 INSERT INTO Book VALUES('B04','Data Structures','Horowitz',650); 
 INSERT INTO Book VALUES('B05','Linear Algebra','Lang',850); 
-
 INSERT INTO Issue(IDCardnumber,BookID,IssueDate,SubmissionDate) VALUES('ID01','B01',DATE '2025-01-10',DATE '2025-01-20');
 INSERT INTO Issue(IDCardnumber,BookID,IssueDate,SubmissionDate) VALUES('ID01','B03',DATE '2025-02-05',DATE '2025-02-15');
 INSERT INTO Issue(IDCardnumber,BookID,IssueDate,SubmissionDate) VALUES('ID02','B05',DATE '2025-02-01',DATE '2025-02-10');
 INSERT INTO Issue(IDCardnumber,BookID,IssueDate,SubmissionDate) VALUES('ID03','B04',DATE '2025-03-01',DATE '2025-03-10');
-            </pre>
-
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">1.3 Required Queries</h3>
-            
-            <p class="font-medium mt-3 text-gray-300">1. Find the total number of students issued books from “CSE” Department</p>
-            <pre class="code-block">
+                    </pre>
+                    
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">1.3 Query Implementations (SQL)</h3>
+                    
+                    <p class="font-medium mt-3 text-gray-600">1. Total number of students issued books from “CSE” Department</p>
+                    <pre class="code-block">
 SELECT COUNT(DISTINCT s.IDCardnumber) AS total_cse_students_issued
 FROM Student s
 JOIN Issue i ON i.IDCardnumber = s.IDCardnumber
 WHERE s.Branch = 'CSE';
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Uses an <code>INNER JOIN</code> to link students who issued a book. Filters by <code>WHERE s.Branch = 'CSE'</code>, and uses <code>COUNT(DISTINCT)</code> to count each unique student only once.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> Calculates unique student count in 'CSE' using <code>INNER JOIN</code>.</p>
+                    </div>
 
-            <p class="font-medium mt-3 text-gray-300">2. Find the list of students not issued books from the library</p>
-            <pre class="code-block">
+                    <p class="font-medium mt-3 text-gray-600">2. Find the list of students not issued books from the library</p>
+                    <pre class="code-block">
 SELECT s.*
 FROM Student s
 LEFT JOIN Issue i ON i.IDCardnumber = s.IDCardnumber
 WHERE i.IDCardnumber IS NULL;
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> A **<code>LEFT JOIN</code>** includes all students. The condition <code>WHERE i.IDCardnumber IS NULL</code> isolates students for whom no matching issue record exists.</p>
-            </div>
-
-            <p class="font-medium mt-3 text-gray-300">3. Find the details of the book with the second highest price</p>
-            <pre class="code-block">
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> Uses a **<code>LEFT JOIN</code>** to include all students and filters by <code>i.IDCardnumber IS NULL</code> to find unissued students.</p>
+                    </div>
+                    
+                    <p class="font-medium mt-3 text-gray-600">3. Details of the book with the second highest price</p>
+                    <pre class="code-block">
 SELECT *
 FROM Book
 WHERE Price = (
@@ -140,47 +266,48 @@ WHERE Price = (
     FROM Book
     WHERE Price < (SELECT MAX(Price) FROM Book)
 );
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Uses nested subqueries. The inner query finds the absolute max price. The outer subquery finds the max price that is strictly less than the absolute max, which is the second highest price.</p>
-            </div>
-
-            <p class="font-medium mt-3 text-gray-300">4. Find branch wise count of students issued books from the library</p>
-            <pre class="code-block">
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> Nested subqueries find the maximum price that is strictly less than the absolute maximum price, identifying the second most expensive book.</p>
+                    </div>
+                    
+                    <p class="font-medium mt-3 text-gray-600">4. Branch wise count of students issued books from the library</p>
+                    <pre class="code-block">
 SELECT s.Branch, COUNT(DISTINCT s.IDCardnumber) AS total_students_issued
 FROM Student s
 JOIN Issue i ON i.IDCardnumber = s.IDCardnumber
 GROUP BY s.Branch
 ORDER BY s.Branch;
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Joins tables, then uses <code>GROUP BY s.Branch</code> to segment results. <code>COUNT(DISTINCT)</code> calculates the unique student count per branch who have issued books.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> Joins the tables and uses <code>GROUP BY</code> with <code>COUNT(DISTINCT)</code> to aggregate unique student counts per branch.</p>
+                    </div>
 
-            <p class="font-medium mt-3 text-gray-300">5. Find the following details, i.e., Book name, student name and issue & submission dates</p>
-            <pre class="code-block">
+                    <p class="font-medium mt-3 text-gray-600">5. Book name, student name and issue & submission dates</p>
+                    <pre class="code-block">
 SELECT 
-    b.Book_Name,
-    s.Stud_Name,
-    i.IssueDate,
-    i.SubmissionDate
+    b.Book_Name, s.Stud_Name, i.IssueDate, i.SubmissionDate
 FROM Issue i
 JOIN Student s ON s.IDCardnumber = i.IDCardnumber
 JOIN Book b ON b.BookID = i.BookID
 ORDER BY i.IssueDate;
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Uses two <code>JOIN</code> operations to link the transaction data in <code>Issue</code> with the descriptive data in <code>Student</code> and <code>Book</code>.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> Two <code>JOIN</code> operations link the three tables to display transaction details alongside student and book names.</p>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Experiment 2 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 2: Basic PL/SQL Programs</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement fundamental PL/SQL programs using loops and conditional logic.</p>
-            
-            <p class="font-medium mt-3 text-gray-300">2.1 Find the sum of “N” numbers</p>
-            <pre class="code-block">
+
+            <!-- Experiment 2 -->
+            <div id="exp2" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 2: Basic PL/SQL Programs
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Implement fundamental PL/SQL programs using loops and conditional logic.</p>
+
+                    <p class="font-medium mt-3 text-gray-600">2.1 Find the sum of “N” numbers</p>
+                    <pre class="code-block">
 DECLARE
     N NUMBER := 10;
     i NUMBER := 1;
@@ -193,13 +320,13 @@ BEGIN
     
     DBMS_OUTPUT.PUT_LINE('Sum of first ' || N || ' numbers = ' || total);
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Uses a **<code>WHILE</code>** loop to iterate from $i=1$ up to $N$, accumulating the sum in the <code>total</code> variable.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Uses a **<code>WHILE</code>** loop to accumulate the sum from 1 to $N$.</p>
+                    </div>
 
-            <p class="font-medium mt-3 text-gray-300">2.2 Find the Factorial of a given number</p>
-            <pre class="code-block">
+                    <p class="font-medium mt-3 text-gray-600">2.2 Find the Factorial of a given number</p>
+                    <pre class="code-block">
 DECLARE
     n NUMBER := 5;
     fact NUMBER := 1;
@@ -210,13 +337,13 @@ BEGIN
     
     DBMS_OUTPUT.PUT_LINE('Factorial of ' || n || ' is = ' || fact);
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Uses a **<code>FOR</code>** loop to iterate from 1 to $n$, multiplying the running product <code>fact</code> by the current loop variable $i$ in each step.</p>
-            </div>
-            
-            <p class="font-medium mt-3 text-gray-300">2.3 Check Prime Number</p>
-            <pre class="code-block">
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Uses a **<code>FOR</code>** loop for iterative multiplication to calculate $n!$.</p>
+                    </div>
+                    
+                    <p class="font-medium mt-3 text-gray-600">2.3 Check Prime Number</p>
+                    <pre class="code-block">
 DECLARE
     num NUMBER := 17;
     flag BOOLEAN := TRUE;
@@ -224,7 +351,6 @@ BEGIN
     IF num <= 1 THEN
         flag := FALSE;
     ELSE
-        -- Check for divisibility up to half of the number
         FOR i IN 2..num/2 LOOP
             IF MOD(num, i) = 0 THEN
                 flag := FALSE;
@@ -239,19 +365,23 @@ BEGIN
         DBMS_OUTPUT.PUT_LINE(num || ' is NOT a Prime Number');
     END IF;
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Checks for divisibility using the **<code>MOD</code>** function in a <code>FOR</code> loop. The loop uses **<code>EXIT</code>** for early termination if a divisor is found.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Implements primality test using the **<code>MOD</code>** function and conditional logic. Uses **<code>EXIT</code>** for efficiency.</p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Experiment 3 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 3: PL/SQL Programs using CASE Statement</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement PL/SQL programs for area calculation demonstrating the <code>CASE</code> conditional control structure.</p>
+            <!-- Experiment 3 -->
+            <div id="exp3" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 3: PL/SQL Programs using CASE Statement
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Implement PL/SQL programs for area calculation demonstrating the <code>CASE</code> conditional control structure.</p>
 
-            <p class="font-medium mt-3 text-gray-300">3.1 Find the area of the Circle</p>
-            <pre class="code-block">
+                    <p class="font-medium mt-3 text-gray-600">3.1 Find the area of the Circle</p>
+                    <pre class="code-block">
 DECLARE
     choice NUMBER := 1;
     radius NUMBER := 7;
@@ -265,13 +395,13 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('Invalid Choice');
     END CASE;
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> When <code>choice</code> is 1, the code executes the calculation for the area of a circle ($Area = \pi r^2$).</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Uses a **<code>CASE</code>** structure to select the area calculation for a circle ($Area = \pi r^2$).</p>
+                    </div>
 
-            <p class="font-medium mt-3 text-gray-300">3.2 Find the area of Triangle</p>
-            <pre class="code-block">
+                    <p class="font-medium mt-3 text-gray-600">3.2 Find the area of Triangle</p>
+                    <pre class="code-block">
 DECLARE
     choice NUMBER := 2;
     base NUMBER := 8;
@@ -286,13 +416,13 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('Invalid Choice');
     END CASE;
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> When <code>choice</code> is 2, the area of the triangle is calculated using the formula $Area = \frac{1}{2}bh$.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> When <code>choice</code> is 2, the area of the triangle is calculated ($Area = \frac{1}{2}bh$).</p>
+                    </div>
 
-            <p class="font-medium mt-3 text-gray-300">3.3 Find the area of Rectangle</p>
-            <pre class="code-block">
+                    <p class="font-medium mt-3 text-gray-600">3.3 Find the area of Rectangle</p>
+                    <pre class="code-block">
 DECLARE
     choice NUMBER := 3;
     length NUMBER := 10;
@@ -307,127 +437,125 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('Invalid Choice');
     END CASE;
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> When <code>choice</code> is 3, the area of the rectangle is calculated using $Area = l \times b$.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> When <code>choice</code> is 3, the area of the rectangle is calculated ($Area = l \times b$).</p>
+                    </div>
+                </div>
             </div>
-        </div>
+            
+            <!-- Experiment 4 -->
+            <div id="exp4" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 4: Object Oriented Database
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Create an Oracle Object Type (<code>Rectangle</code>) with member functions for Area and Perimeter.</p>
 
-        <!-- Experiment 4 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 4: Object Oriented Database</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To create an Oracle Object Type (<code>Rectangle</code>) with member functions for Area and Perimeter.</p>
-
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">4.1 Create Object Type (Specification)</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">4.1 Object Type Specification & Body</h3>
+                    <pre class="code-block">
+-- Specification: Defines attributes and declares methods
 CREATE OR REPLACE TYPE Rectangle AS OBJECT (
     length NUMBER,
     breadth NUMBER,
-    
     MEMBER FUNCTION Area RETURN NUMBER,
     MEMBER FUNCTION Perimeter RETURN NUMBER
 );/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Defines the object's attributes (<code>length</code>, <code>breadth</code>) and declares the methods (<code>Area</code>, <code>Perimeter</code>) that the object will support.</p>
-            </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">4.2 Create Object Body (Implementation)</h3>
-            <pre class="code-block">
+-- Body: Provides the PL/SQL implementation for the methods
 CREATE OR REPLACE TYPE BODY Rectangle AS
-
     MEMBER FUNCTION Area RETURN NUMBER IS
     BEGIN
         RETURN length * breadth;
     END;
-    
     MEMBER FUNCTION Perimeter RETURN NUMBER IS
     BEGIN
         RETURN 2 * (length + breadth);
     END;
-
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Provides the concrete PL/SQL implementation for the methods, utilizing the object's internal attributes for calculation.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> Demonstrates Object-Oriented concepts by encapsulating data (length, breadth) and behavior (Area, Perimeter) within a single schema object.</p>
+                    </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">4.3 Test the Object</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">4.2 Test the Object</h3>
+                    <pre class="code-block">
 DECLARE
-    R Rectangle := Rectangle(10, 5); -- Instantiates the object
+    R Rectangle := Rectangle(10, 5); 
 BEGIN
     DBMS_OUTPUT.PUT_LINE('Area of Rectangle = ' || R.Area);
     DBMS_OUTPUT.PUT_LINE('Perimeter of Rectangle = ' || R.Perimeter);
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Declares an instance <code>R</code> and calls the member functions using standard object notation (<code>R.Area</code>).</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Shows successful instantiation of the object and invocation of member functions using dot notation (e.g., <code>R.Area</code>).</p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Experiment 5 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 5: PL/SQL Function at Schema Level</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement a schema-level function to count employees in "TCS" earning over Rs. 50,000/-.</p>
+            <!-- Experiment 5 -->
+            <div id="exp5" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 5: PL/SQL Function at Schema Level
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Implement a schema-level function to count employees in "TCS" earning over Rs. 50,000/-.</p>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">5.1 Supporting Table (DDL and DML)</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">5.1 Supporting Table (DDL and DML)</h3>
+                    <pre class="code-block">
 CREATE TABLE Employee (
-    EmpID NUMBER PRIMARY KEY,
-    EmpName VARCHAR2(50),
-    Company VARCHAR2(50),
-    Salary NUMBER
+    EmpID NUMBER PRIMARY KEY, EmpName VARCHAR2(50), 
+    Company VARCHAR2(50), Salary NUMBER
 );
 
 INSERT INTO Employee VALUES (101, 'Kiran Jadhav', 'TCS', 65000);  
 INSERT INTO Employee VALUES (102, 'Shweta Rane', 'TCS', 45000);  
 INSERT INTO Employee VALUES (103, 'Aarti Patil', 'Infosys', 70000); 
 INSERT INTO Employee VALUES (104, 'Ganesh More', 'TCS', 51000);  
-            </pre>
+                    </pre>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">5.2 Create and Implement Function</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">5.2 Create and Implement Function</h3>
+                    <pre class="code-block">
 CREATE OR REPLACE FUNCTION Count_TCSEmployees
 RETURN NUMBER
 IS
     total NUMBER;
 BEGIN
-    SELECT COUNT(*)
-    INTO total
-    FROM Employee
-    WHERE Company = 'TCS'
-      AND Salary > 50000;
-
+    SELECT COUNT(*) INTO total FROM Employee
+    WHERE Company = 'TCS' AND Salary > 50000;
     RETURN total;
 END;
 /
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> The function uses the **<code>SELECT COUNT(*) INTO</code>** command to execute an aggregate query filtered by the specified criteria and returns the resulting scalar value.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> Function uses **<code>SELECT COUNT(*) INTO</code>** filtered by the criteria and returns the resulting count.</p>
+                    </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">5.3 Execution Block</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">5.3 Execution Block</h3>
+                    <pre class="code-block">
 DECLARE
     result NUMBER;
 BEGIN
     result := Count_TCSEmployees; 
     DBMS_OUTPUT.PUT_LINE('Employees in TCS earning above 50,000: ' || result);
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Demonstrates calling the stored schema-level function.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Result displays the count retrieved from the function call.</p>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Experiment 6 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 6: PL/SQL Procedure (Inside a PL/SQL block)</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement procedures demonstrating the use of <code>IN</code> and <code>IN OUT</code> parameters.</p>
+            
+            <!-- Experiment 6 -->
+            <div id="exp6" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 6: PL/SQL Procedure (IN / IN OUT Parameters)
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Implement procedures demonstrating the use of <code>IN</code> and <code>IN OUT</code> parameters.</p>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">6.1 Find the square of a number using the “IN OUT” Parameter</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">6.1 Find the square of a number using the “IN OUT” Parameter</h3>
+                    <pre class="code-block">
 CREATE OR REPLACE PROCEDURE Square_Num(num IN OUT NUMBER)
 IS
 BEGIN
@@ -442,17 +570,16 @@ BEGIN
     Square_Num(n); 
     DBMS_OUTPUT.PUT_LINE('Square = ' || n);
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> The **<code>IN OUT</code>** parameter allows the variable <code>num</code> to be both read (input) and modified (output), changing its value permanently for the calling block.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> The **<code>IN OUT</code>** parameter allows the variable <code>n</code> to be permanently modified and returned to the calling block.</p>
+                    </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">6.2 Find the Maximum of three numbers (IN, IN, IN OUT)</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">6.2 Find the Maximum of three numbers (IN, IN, IN OUT)</h3>
+                    <pre class="code-block">
 CREATE OR REPLACE PROCEDURE Max_Of_Three(
-    a IN NUMBER,
-    b IN NUMBER,
-    c IN OUT NUMBER -- Used to receive input and return the final result
+    a IN NUMBER, b IN NUMBER,
+    c IN OUT NUMBER 
 )
 IS
 BEGIN
@@ -465,44 +592,44 @@ END;/
 
 -- Execution Block
 DECLARE
-    x NUMBER := 10;
-    y NUMBER := 25;
-    z NUMBER := 15; 
+    x NUMBER := 10; y NUMBER := 25; z NUMBER := 15; 
 BEGIN
     Max_Of_Three(x, y, z); 
     DBMS_OUTPUT.PUT_LINE('Maximum = ' || z); 
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> <code>a</code> and <code>b</code> are read-only (<code>IN</code>). <code>c</code> is an <code>IN OUT</code> parameter, used to store the largest value, which is then returned to the variable <code>z</code> in the execution block.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> <code>a</code> and <code>b</code> are read-only (<code>IN</code>). <code>c</code> is modified to hold the maximum value and returned via <code>IN OUT</code>.</p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Experiment 7 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 7: Demonstrate the concept of Sequences</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To create a sequence for auto-generating <code>EmployeeID</code> and demonstrate DML operations.</p>
-            
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">7.1 Employee Table and Sequence Creation (DDL)</h3>
-            <pre class="code-block">
+            <!-- Experiment 7 -->
+            <div id="exp7" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 7: Demonstrate the concept of Sequences
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Create a sequence for auto-generating <code>EmployeeID</code> and demonstrate DML operations.</p>
+                    
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">7.1 Employee Table and Sequence Creation (DDL)</h3>
+                    <pre class="code-block">
 CREATE TABLE Employee (
-    EmployeeID NUMBER PRIMARY KEY,
-    Ename VARCHAR2(50),
-    Salary NUMBER,
-    City VARCHAR2(30)
+    EmployeeID NUMBER PRIMARY KEY, Ename VARCHAR2(50), 
+    Salary NUMBER, City VARCHAR2(30)
 );
 
 CREATE SEQUENCE EmpID_Seq
 START WITH 1
 INCREMENT BY 1
 NOCACHE;
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> The sequence is created to generate unique, ascending integer values, suitable for populating the primary key (<code>EmployeeID</code>).</p>
-            </div>
-            
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">7.2 Demonstrate Insert, Select, Delete Operations (DML)</h3>
-            <pre class="code-block">
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> Sequence is created to generate unique, ascending integer values for the primary key.</p>
+                    </div>
+                    
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">7.2 Demonstrate Insert, Select, Delete Operations (DML)</h3>
+                    <pre class="code-block">
 -- INSERT using the sequence
 INSERT INTO Employee (EmployeeID, Ename, Salary, City)
 VALUES (EmpID_Seq.NEXTVAL, 'Rahul Sharma', 60000, 'Mumbai'); 
@@ -518,156 +645,116 @@ WHERE Ename = 'Rahul Sharma';
 
 -- Verify deletion
 SELECT * FROM Employee;
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> The <code>EmpID_Seq.NEXTVAL</code> pseudocolumn is used in the <code>INSERT</code> statement to ensure automatic, unique ID generation for the primary key.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> <code>EmpID_Seq.NEXTVAL</code> is used to ensure automatic, unique ID generation for the primary key during insertion.</p>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Experiment 8 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 8: Star Schema Implementation</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement the necessary tables to form a Star Schema Data Warehouse model.</p>
             
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">8.1 Dimension and Fact Tables (DDL)</h3>
-            <pre class="code-block">
+            <!-- Experiment 8 -->
+            <div id="exp8" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 8: Star Schema Implementation
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Implement the necessary tables to form a Star Schema Data Warehouse model.</p>
+                    
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">8.1 Dimension and Fact Tables (DDL)</h3>
+                    <pre class="code-block">
 -- Dimension 1: Location
-CREATE TABLE Location (
-    LID NUMBER PRIMARY KEY,
-    City VARCHAR2(50),
-    State VARCHAR2(50),
-    Country VARCHAR2(50)
-);
-
+CREATE TABLE Location (LID NUMBER PRIMARY KEY, City VARCHAR2(50), State VARCHAR2(50), Country VARCHAR2(50));
 -- Dimension 2: Product
-CREATE TABLE Product (
-    PID NUMBER PRIMARY KEY,
-    Pname VARCHAR2(50),
-    Price NUMBER,
-    Category VARCHAR2(30)
-);
-
+CREATE TABLE Product (PID NUMBER PRIMARY KEY, Pname VARCHAR2(50), Price NUMBER, Category VARCHAR2(30));
 -- Dimension 3: Customer
-CREATE TABLE Customer (
-    CID NUMBER PRIMARY KEY,
-    Cname VARCHAR2(50),
-    Cust_City VARCHAR2(50),
-    Cust_State VARCHAR2(50)
-);
-
+CREATE TABLE Customer (CID NUMBER PRIMARY KEY, Cname VARCHAR2(50), Cust_City VARCHAR2(50), Cust_State VARCHAR2(50));
 -- Dimension 4: TimeLine
-CREATE TABLE TimeLine (
-    TID NUMBER PRIMARY KEY,
-    SaleDate DATE,
-    SaleDay VARCHAR2(10),
-    Month VARCHAR2(10),
-    Year NUMBER
-);
+CREATE TABLE TimeLine (TID NUMBER PRIMARY KEY, SaleDate DATE, SaleDay VARCHAR2(10), Month VARCHAR2(10), Year NUMBER);
 
 -- Fact Table: Sales (linking all dimensions)
 CREATE TABLE Sales (
-    SaleID NUMBER PRIMARY KEY,
-    CID NUMBER, 
-    LID NUMBER, 
-    TID NUMBER, 
-    PID NUMBER, 
-    Quantity NUMBER,
-    FOREIGN KEY (CID) REFERENCES Customer(CID),
-    FOREIGN KEY (LID) REFERENCES Location(LID),
-    FOREIGN KEY (TID) REFERENCES TimeLine(TID),
-    FOREIGN KEY (PID) REFERENCES Product(PID)
+    SaleID NUMBER PRIMARY KEY, CID NUMBER, LID NUMBER, TID NUMBER, PID NUMBER, Quantity NUMBER,
+    FOREIGN KEY (CID) REFERENCES Customer(CID), FOREIGN KEY (LID) REFERENCES Location(LID), 
+    FOREIGN KEY (TID) REFERENCES TimeLine(TID), FOREIGN KEY (PID) REFERENCES Product(PID)
 );
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> The Star Schema separates data into a central **Fact Table** (<code>Sales</code>, containing quantitative metrics and foreign keys) and multiple **Dimension Tables** (<code>Location</code>, <code>Product</code>, etc., containing descriptive attributes).</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> The Fact Table (<code>Sales</code>) links to the four Dimension Tables via Foreign Keys, establishing the Star Schema structure.</p>
+                    </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">8.2 Sample Data (DML)</h3>
-            <pre class="code-block">
--- Insert Sample Dimension Data
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">8.2 Sample Data (DML)</h3>
+                    <pre class="code-block">
 INSERT INTO Location VALUES (10, 'Pune', 'Maharashtra', 'India');
-INSERT INTO Location VALUES (20, 'Mumbai', 'Maharashtra', 'India');
-
 INSERT INTO Product VALUES (101, 'Laptop', 55000, 'Electronics');
-INSERT INTO Product VALUES (102, 'Mobile', 25000, 'Electronics');
-INSERT INTO Product VALUES (103, 'Shoes', 3000, 'Fashion');
-
 INSERT INTO Customer VALUES (301, 'Amit Kulkarni', 'Pune', 'Maharashtra');
-INSERT INTO Customer VALUES (302, 'Rina Sharma', 'Mumbai', 'Maharashtra');
-
 INSERT INTO TimeLine VALUES (401, DATE '2025-01-15', 'Monday', 'January', 2025);
-INSERT INTO TimeLine VALUES (402, DATE '2025-02-20', 'Wednesday', 'February', 2025);
-INSERT INTO TimeLine VALUES (403, DATE '2025-02-21', 'Thursday', 'February', 2025);
-
--- Insert Sample Sales Data (Fact)
 INSERT INTO Sales VALUES (1, 301, 10, 401, 101, 2); 
-INSERT INTO Sales VALUES (2, 302, 20, 402, 102, 1); 
-INSERT INTO Sales VALUES (3, 301, 10, 402, 103, 3); 
-INSERT INTO Sales VALUES (4, 301, 10, 403, 102, 1); 
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> Sample data fills the tables, allowing subsequent OLAP operations (like ROLLUP and CUBE) to be executed for demonstration.</p>
+-- [Additional sample data]
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> Populates the dimension and fact tables with necessary data to support subsequent OLAP queries.</p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Experiment 9 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 9: ROLLUP and CUBE Operations</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To demonstrate advanced grouping operations (<code>ROLLUP</code> and <code>CUBE</code>) using Joins on the Star Schema tables for OLAP reporting.</p>
+            <!-- Experiment 9 -->
+            <div id="exp9" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 9: ROLLUP and CUBE Operations
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Demonstrate advanced grouping operations (<code>ROLLUP</code> and <code>CUBE</code>) using Joins.</p>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">9.1 ROLLUP Operation (City, Month) - Hierarchical Aggregation</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">9.1 ROLLUP Operation (City, Month) - Hierarchical Aggregation</h3>
+                    <pre class="code-block">
 SELECT 
-    l.City,
-    t.Month,
-    SUM(s.Quantity) AS Total_Quantity
+    l.City, t.Month, SUM(s.Quantity) AS Total_Quantity
 FROM Sales s
 JOIN Location l ON s.LID = l.LID
 JOIN TimeLine t ON s.TID = t.TID
 GROUP BY ROLLUP (l.City, t.Month);
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> <code>ROLLUP</code> provides hierarchical summaries: sales by City and Month, subtotals for each City (Month is <code>NULL</code>), and a Grand Total. It uses three tables (<code>Sales</code>, <code>Location</code>, <code>TimeLine</code>) joined on foreign keys.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> <code>ROLLUP</code> provides hierarchical summaries: sales by (City, Month), subtotals for each City, and a Grand Total. It uses three joined tables.</p>
+                    </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">9.2 CUBE Operation (Category, City) - Cross-Sectional Aggregation</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">9.2 CUBE Operation (Category, City) - Cross-Sectional Aggregation</h3>
+                    <pre class="code-block">
 SELECT 
-    p.Category,
-    l.City,
-    SUM(s.Quantity) AS Total_Quantity
+    p.Category, l.City, SUM(s.Quantity) AS Total_Quantity
 FROM Sales s
 JOIN Product p ON s.PID = p.PID
 JOIN Location l ON s.LID = l.LID
 GROUP BY CUBE (p.Category, l.City);
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> <code>CUBE</code> generates all possible non-hierarchical summaries: sales by (Category, City), (Category Total), (City Total), and (Grand Total). This provides a comprehensive analytical view. It uses three tables (<code>Sales</code>, <code>Product</code>, <code>Location</code>) joined on foreign keys.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Query Result:</strong> <code>CUBE</code> generates all possible summaries: (Category, City), (Category Total), (City Total), and (Grand Total). It uses three joined tables.</p>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Experiment 10 -->
-        <div class="section-card">
-            <h2 class="text-2xl font-bold">📌 Experiment 10: Implementation of a Trigger</h2>
-            <p class="text-lg mb-4 text-gray-300">**Aim:** To implement a <code>BEFORE INSERT</code> trigger (<code>trg_assign_grade</code>) to automatically assign a letter grade based on a student's marks.</p>
+            
+            <!-- Experiment 10 -->
+            <div id="exp10" class="mb-8 border border-gray-300 rounded-lg shadow-sm bg-white">
+                <div class="worksheet-section-header">
+                    Experiment 10: Implementation of a Trigger
+                </div>
+                <div class="p-4">
+                    <p class="text-sm mb-4 font-semibold text-gray-600">Aim: Implement a <code>BEFORE INSERT</code> trigger (<code>trg_assign_grade</code>) to automatically assign a letter grade based on a student's marks.</p>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">10.1 Student Table (DDL)</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">10.1 Student Table (DDL)</h3>
+                    <pre class="code-block">
 CREATE TABLE Student_Grade (
-    RollNo NUMBER PRIMARY KEY,
-    Stud_Name VARCHAR2(50),
-    Marks NUMBER,
-    Grade CHAR(1)
+    RollNo NUMBER PRIMARY KEY, Stud_Name VARCHAR2(50), 
+    Marks NUMBER, Grade CHAR(1)
 );
-            </pre>
+                    </pre>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">10.2 Create Trigger trg\_assign\_grade</h3>
-            <pre class="code-block">
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">10.2 Create Trigger trg\_assign\_grade</h3>
+                    <pre class="code-block">
 CREATE OR REPLACE TRIGGER trg_assign_grade
 BEFORE INSERT ON Student_Grade
 FOR EACH ROW
 BEGIN
-    -- Grade assignment logic applied to the new record (:NEW)
     IF :NEW.Marks >= 75 THEN
         :NEW.Grade := 'A';
     ELSIF :NEW.Marks >= 50 THEN
@@ -676,29 +763,29 @@ BEGIN
         :NEW.Grade := 'C';
     END IF;
 END;/
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> This is a **<code>BEFORE INSERT FOR EACH ROW</code>** trigger. It uses the transition variable **<code>:NEW.Marks</code>** to read the input marks and sets the **<code>:NEW.Grade</code>** value according to the specified criteria *before* the record is finalized and inserted into the table.</p>
-            </div>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Execution Result:</strong> This **<code>BEFORE INSERT FOR EACH ROW</code>** trigger reads <code>:NEW.Marks</code> and automatically sets <code>:NEW.Grade</code> before the row is saved.</p>
+                    </div>
 
-            <h3 class="text-xl font-semibold mt-4 mb-2 text-gray-200">10.3 Test the Trigger (DML)</h3>
-            <pre class="code-block">
--- Insert records, intentionally omitting the Grade column
+                    <h3 class="text-md font-semibold mt-4 mb-2 text-gray-700">10.3 Test the Trigger (DML)</h3>
+                    <pre class="code-block">
 INSERT INTO Student_Grade (RollNo, Stud_Name, Marks) VALUES (1, 'Amit', 82); 
 INSERT INTO Student_Grade (RollNo, Stud_Name, Marks) VALUES (2, 'Priya', 65); 
 INSERT INTO Student_Grade (RollNo, Stud_Name, Marks) VALUES (3, 'Raj', 45);  
 
--- View results to confirm automatic grade assignment
 SELECT * FROM Student_Grade;
-            </pre>
-            <div class="explanation">
-                <p><strong>Explanation:</strong> The trigger executes upon insertion, automatically populating the <code>Grade</code> field based on the <code>Marks</code> provided in the statement.</p>
+                    </pre>
+                    <div class="explanation">
+                        <p><strong>Output:</strong> Confirms the trigger successfully populated the <code>Grade</code> column automatically for all inserted rows.</p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <footer class="text-center text-gray-500 mt-8 mb-4">
-            &copy; 2025 DBMS Lab Documentation
-        </footer>
+            <footer class="text-center text-gray-500 mt-8 mb-4">
+                *** End of Lab Report ***
+            </footer>
+        </div>
     </div>
 </body>
 </html>
